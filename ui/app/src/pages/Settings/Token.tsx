@@ -57,7 +57,7 @@ const Token = () => {
 
   const handleRemoveTokenConfirm = () => {
     if (tokenName === 'gcp') {
-      Cookies.remove('access_token')
+      Cookies.remove('id_token')
       Cookies.remove('refresh_token')
       Cookies.remove('expiry')
     } else {

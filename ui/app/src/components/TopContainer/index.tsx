@@ -94,7 +94,7 @@ const TopContainer = () => {
    */
   function setAuth() {
     // GCP
-    const accessToken = Cookies.get('access_token')
+    const accessToken = Cookies.get('id_token')
     const expiry = Cookies.get('expiry')
 
     if (accessToken && expiry) {

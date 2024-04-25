@@ -23,7 +23,7 @@ import (
 )
 
 func setCookie(c *gin.Context, token *oauth2.Token) {
-	c.SetCookie("access_token", token.AccessToken, 0, "", "", false, false)
+	c.SetCookie("id_token", token.AccessToken, 0, "", "", false, false)
 	c.SetCookie("refresh_token", token.RefreshToken, 0, "", "", false, false)
 	c.SetCookie("expiry", token.Expiry.Format(time.RFC3339), 0, "", "", false, false)
 }

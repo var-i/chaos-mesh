@@ -23,7 +23,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-logr/logr"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 
 	config "github.com/chaos-mesh/chaos-mesh/pkg/config"
 	"github.com/chaos-mesh/chaos-mesh/pkg/dashboard/apiserver/utils"
@@ -34,6 +33,11 @@ type Service struct {
 	clientSecret string
 	rootUrl      *url.URL
 	logger       logr.Logger
+}
+
+var Endpoint = oauth2.Endpoint{
+	AuthURL:  "https://login.microsoftonline.com/1d063515-6cad-4195-9486-ea65df456faa/oauth2/authorize",
+	TokenURL: "https://login.microsoftonline.com/1d063515-6cad-4195-9486-ea65df456faa/oauth2/token",
 }
 
 // NewService returns an experiment service instance.
@@ -71,6 +75,23 @@ func Register(r *gin.RouterGroup, s *Service, conf *config.ChaosDashboardConfig)
 	endpoint.GET("/callback", s.authCallback)
 }
 
+// func (s *Service) getOauthConfig(c *gin.Context) oauth2.Config {
+// 	url := *s.rootUrl
+// 	url.Path = path.Join(s.rootUrl.Path, "./api/auth/azure/callback")
+
+// 	return oauth2.Config{
+// 		ClientID:     s.clientId,
+// 		ClientSecret: s.clientSecret,
+// 		RedirectURL:  url.String(),
+// 		Scopes: []string{
+// 			"profile",
+// 			"email",
+// 			"groups",
+// 		},
+// 		Endpoint: microsoft.AzureADEndpoint(s.tenantID), // You need to specify the Azure AD tenant ID here
+// 	}
+// }
+
 func (s *Service) getOauthConfig(c *gin.Context) oauth2.Config {
 	url := *s.rootUrl
 	url.Path = path.Join(s.rootUrl.Path, "./api/auth/gcp/callback")
@@ -80,18 +101,17 @@ func (s *Service) getOauthConfig(c *gin.Context) oauth2.Config {
 		ClientSecret: s.clientSecret,
 		RedirectURL:  url.String(),
 		Scopes: []string{
-			"email", "profile",
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/compute",
-			"https://www.googleapis.com/auth/cloud-platform",
+			"openid",
 		},
-		Endpoint: google.Endpoint,
+		Endpoint: Endpoint,
 	}
 }
 
 func (s *Service) handleRedirect(c *gin.Context) {
 	oauth := s.getOauthConfig(c)
-	uri := oauth.AuthCodeURL("", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	uri := oauth.AuthCodeURL("")
+
+	s.logger.Info("Redirecting to: ", "URI", uri) // This will log the URL using your service's logger
 
 	c.Redirect(http.StatusFound, uri)
 }
@@ -106,6 +126,10 @@ func (s *Service) authCallback(c *gin.Context) {
 		return
 	}
 
+	s.logger.Info("Entire token", "Token", oauth2Token)
+	s.logger.Info("Token received", "Token", oauth2Token.Extra("id_token"))
+
+	oauth2Token.AccessToken = oauth2Token.Extra("id_token").(string)
 	setCookie(c, oauth2Token)
 	target := url.URL{
 		Path: "/",
